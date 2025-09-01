@@ -1,45 +1,35 @@
-// In-memory storage (no database needed for testing)
-let tasks = [
-  {
-    _id: '1',
-    title: 'Sample Task',
-    description: 'This is a sample task',
-    status: 'pending',
-    createdAt: new Date(),
-    updatedAt: new Date()
-  }
-];
+const Task = require('../models/task');
 
-let nextId = 2;
-
-// Get all tasks
-const getTasks = async (req, res) => {
+// Get all tasks with optional search and filter
+exports.getTasks = async (req, res) => {
   try {
     const { search, status } = req.query;
-    let result = [...tasks];
+    let query = {};
 
+    // Filter by status if provided
     if (status && status !== 'all') {
-      result = result.filter(task => task.status === status);
+      query.status = status;
     }
 
+    // Search by keyword in title or description
     if (search) {
-      const s = search.toLowerCase();
-      result = result.filter(task => 
-        task.title.toLowerCase().includes(s) ||
-        task.description.toLowerCase().includes(s)
-      );
+      query.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } }
+      ];
     }
 
-    res.json(result);
+    const tasks = await Task.find(query).sort({ createdAt: -1 });
+    res.json(tasks);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// Get single task
-const getTaskById = async (req, res) => {
+// Get single task by ID
+exports.getTaskById = async (req, res) => {
   try {
-    const task = tasks.find(t => t._id === req.params.id);
+    const task = await Task.findById(req.params.id);
     if (!task) {
       return res.status(404).json({ message: 'Task not found' });
     }
@@ -49,76 +39,60 @@ const getTaskById = async (req, res) => {
   }
 };
 
-// Create task
-const createTask = async (req, res) => {
+// Create new task
+exports.createTask = async (req, res) => {
   try {
     const { title, description, status } = req.body;
     
     if (!title || !description) {
-      return res.status(400).json({ message: 'Title and description required' });
+      return res.status(400).json({ message: 'Title and description are required' });
     }
 
-    const newTask = {
-      _id: nextId.toString(),
+    const task = new Task({
       title,
       description,
-      status: status || 'pending',
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
+      status: status || 'pending'
+    });
 
-    tasks.push(newTask);
-    nextId++;
-    
-    res.status(201).json(newTask);
+    const savedTask = await task.save();
+    res.status(201).json(savedTask);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
 };
 
 // Update task
-const updateTask = async (req, res) => {
+exports.updateTask = async (req, res) => {
   try {
     const { title, description, status } = req.body;
     
-    const taskIndex = tasks.findIndex(t => t._id === req.params.id);
-    if (taskIndex === -1) {
+    const task = await Task.findByIdAndUpdate(
+      req.params.id,
+      { title, description, status, updatedAt: Date.now() },
+      { new: true, runValidators: true }
+    );
+
+    if (!task) {
       return res.status(404).json({ message: 'Task not found' });
     }
 
-    tasks[taskIndex] = {
-      ...tasks[taskIndex],
-      title: title || tasks[taskIndex].title,
-      description: description || tasks[taskIndex].description,
-      status: status || tasks[taskIndex].status,
-      updatedAt: new Date()
-    };
-
-    res.json(tasks[taskIndex]);
+    res.json(task);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
 };
 
 // Delete task
-const deleteTask = async (req, res) => {
+exports.deleteTask = async (req, res) => {
   try {
-    const taskIndex = tasks.findIndex(t => t._id === req.params.id);
-    if (taskIndex === -1) {
+    const task = await Task.findByIdAndDelete(req.params.id);
+    
+    if (!task) {
       return res.status(404).json({ message: 'Task not found' });
     }
 
-    tasks.splice(taskIndex, 1);
     res.json({ message: 'Task deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
-};
-
-module.exports = {
-  getTasks,
-  getTaskById,
-  createTask,
-  updateTask,
-  deleteTask
 };
