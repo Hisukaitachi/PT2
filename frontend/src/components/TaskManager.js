@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { Search, Plus, Edit3, Trash2, Calendar, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
+
 import { taskAPI } from '../services/api';
 
 const TaskManager = () => {
@@ -95,14 +97,42 @@ const TaskManager = () => {
     setError('');
   };
 
-  // Get status badge color
-  const getStatusColor = (status) => {
+  // Get status badge styling
+  const getStatusStyling = (status) => {
     switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'in-progress': return 'bg-blue-100 text-blue-800';
-      case 'completed': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'pending': 
+        return {
+          bg: 'bg-amber-50 border-amber-200',
+          text: 'text-amber-700',
+          icon: AlertCircle
+        };
+      case 'in-progress': 
+        return {
+          bg: 'bg-blue-50 border-blue-200',
+          text: 'text-blue-700',
+          icon: Clock
+        };
+      case 'completed': 
+        return {
+          bg: 'bg-emerald-50 border-emerald-200',
+          text: 'text-emerald-700',
+          icon: CheckCircle2
+        };
+      default: 
+        return {
+          bg: 'bg-gray-50 border-gray-200',
+          text: 'text-gray-700',
+          icon: AlertCircle
+        };
     }
+  };
+
+  // Task stats
+  const taskStats = {
+    total: tasks.length,
+    pending: tasks.filter(task => task.status === 'pending').length,
+    inProgress: tasks.filter(task => task.status === 'in-progress').length,
+    completed: tasks.filter(task => task.status === 'completed').length
   };
 
   // Load tasks when component mounts or filters change
@@ -111,178 +141,234 @@ const TaskManager = () => {
   }, [search, statusFilter]);
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      {/* Header */}
-      <div className="mb-8 text-center">
-        <h1 className="text-4xl font-bold text-gray-900 mb-2">Task Manager</h1>
-        <p className="text-gray-600">Organize and track your tasks efficiently</p>
-      </div>
-
-      {/* Error Message */}
-      {error && (
-        <div className="mb-6 p-4 bg-red-100 border border-red-300 text-red-700 rounded-lg">
-          {error}
-        </div>
-      )}
-
-      {/* Search and Filter Controls */}
-      <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
-        <div className="flex flex-wrap gap-4 items-center">
-          <div className="flex-1 min-w-64">
-            <input
-              type="text"
-              placeholder="Search tasks by title or description..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="all">All Status</option>
-            <option value="pending">Pending</option>
-            <option value="in-progress">In Progress</option>
-            <option value="completed">Completed</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Task Form */}
-      <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
-        <h2 className="text-xl font-semibold mb-4">
-          {editingId ? 'Edit Task' : 'Add New Task'}
-        </h2>
-        
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Title
-            </label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter task title"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Description
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Enter task description"
-              rows="3"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Status
-            </label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="pending">Pending</option>
-              <option value="in-progress">In Progress</option>
-              <option value="completed">Completed</option>
-            </select>
-          </div>
-
-          <div className="flex gap-3">
-            <button
-              onClick={saveTask}
-              disabled={loading}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
-            >
-              {loading ? 'Saving...' : (editingId ? 'Update Task' : 'Add Task')}
-            </button>
-            
-            {editingId && (
-              <button
-                onClick={cancelEdit}
-                className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-              >
-                Cancel
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Tasks List */}
-      <div className="bg-white rounded-lg shadow-sm">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold">Tasks ({tasks.length})</h2>
-        </div>
-        
-        <div className="p-6">
-          {loading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading tasks...</p>
+    <div className="min-h-screen bg-slate-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header Section */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Task Manager</h1>
+              <p className="text-slate-600 mt-1">Organize and track your work efficiently</p>
             </div>
-          ) : tasks.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-gray-500 text-lg mb-2">No tasks found</p>
-              <p className="text-gray-400">
-                {search || statusFilter !== 'all' 
-                  ? 'Try adjusting your search or filter'
-                  : 'Create your first task to get started!'
-                }
-              </p>
+            <div className="hidden sm:flex items-center space-x-1 bg-white rounded-lg p-1 shadow-sm border border-slate-200">
+              <div className="px-3 py-2 text-sm font-medium text-slate-600">
+                {taskStats.total} Total
+              </div>
+              <div className="px-3 py-2 text-sm font-medium text-amber-600 bg-amber-50 rounded">
+                {taskStats.pending} Pending
+              </div>
+              <div className="px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded">
+                {taskStats.inProgress} Active
+              </div>
+              <div className="px-3 py-2 text-sm font-medium text-emerald-600 bg-emerald-50 rounded">
+                {taskStats.completed} Done
+              </div>
             </div>
-          ) : (
-            <div className="space-y-4">
-              {tasks.map((task) => (
-                <div key={task._id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-lg font-semibold text-gray-900">{task.title}</h3>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}>
-                          {task.status.replace('-', ' ')}
-                        </span>
-                      </div>
-                      <p className="text-gray-700 mb-3">{task.description}</p>
-                      <div className="text-sm text-gray-500">
-                        Created: {new Date(task.createdAt).toLocaleDateString()}
-                        {task.updatedAt !== task.createdAt && (
-                          <span className="ml-4">
-                            Updated: {new Date(task.updatedAt).toLocaleDateString()}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="flex gap-2 ml-4">
-                      <button
-                        onClick={() => editTask(task)}
-                        className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => deleteTask(task._id)}
-                        className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
+          </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-800 rounded-xl flex items-center space-x-2">
+              <AlertCircle className="h-5 w-5 flex-shrink-0" />
+              <span>{error}</span>
             </div>
           )}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Task Form - Left Column */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sticky top-8">
+              <div className="flex items-center space-x-2 mb-6">
+                <Plus className="h-5 w-5 text-slate-600" />
+                <h2 className="text-lg font-semibold text-slate-900">
+                  {editingId ? 'Edit Task' : 'Create Task'}
+                </h2>
+              </div>
+              
+              <div className="space-y-5">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Task Title
+                  </label>
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Enter a descriptive title"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Description
+                  </label>
+                  <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Provide additional details about this task"
+                    rows="4"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Status
+                  </label>
+                  <select
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value)}
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="in-progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                  </select>
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    onClick={saveTask}
+                    disabled={loading}
+                    className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium shadow-sm hover:shadow-md"
+                  >
+                    {loading ? 'Saving...' : (editingId ? 'Update Task' : 'Add Task')}
+                  </button>
+                  
+                  {editingId && (
+                    <button
+                      onClick={cancelEdit}
+                      className="w-full mt-3 px-6 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium"
+                    >
+                      Cancel Edit
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Tasks List - Right Column */}
+          <div className="lg:col-span-2">
+            {/* Search and Filter Controls */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search tasks..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  />
+                </div>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors min-w-40"
+                >
+                  <option value="all">All Tasks</option>
+                  <option value="pending">Pending</option>
+                  <option value="in-progress">In Progress</option>
+                  <option value="completed">Completed</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Tasks List */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200">
+              <div className="px-6 py-4 border-b border-slate-200">
+                <h2 className="text-lg font-semibold text-slate-900">
+                  Tasks Overview
+                  <span className="ml-2 text-sm font-normal text-slate-500">({tasks.length} total)</span>
+                </h2>
+              </div>
+              
+              <div className="p-6">
+                {loading ? (
+                  <div className="text-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-600 border-t-transparent mx-auto mb-4"></div>
+                    <p className="text-slate-600 font-medium">Loading tasks...</p>
+                  </div>
+                ) : tasks.length === 0 ? (
+                  <div className="text-center py-16">
+                    <div className="bg-slate-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                      <CheckCircle2 className="h-8 w-8 text-slate-400" />
+                    </div>
+                    <h3 className="text-lg font-medium text-slate-900 mb-2">No tasks found</h3>
+                    <p className="text-slate-500 max-w-sm mx-auto">
+                      {search || statusFilter !== 'all' 
+                        ? 'Try adjusting your search criteria or filter options'
+                        : 'Get started by creating your first task using the form on the left'
+                      }
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {tasks.map((task) => {
+                      const statusStyle = getStatusStyling(task.status);
+                      const StatusIcon = statusStyle.icon;
+                      
+                      return (
+                        <div key={task._id} className="group border border-slate-200 rounded-xl p-6 hover:shadow-md hover:border-slate-300 transition-all duration-200 bg-white">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center space-x-3 mb-3">
+                                <h3 className="text-lg font-semibold text-slate-900 truncate group-hover:text-blue-700 transition-colors">
+                                  {task.title}
+                                </h3>
+                                <div className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-medium border ${statusStyle.bg} ${statusStyle.text}`}>
+                                  <StatusIcon className="h-3.5 w-3.5" />
+                                  <span className="capitalize">{task.status.replace('-', ' ')}</span>
+                                </div>
+                              </div>
+                              
+                              <p className="text-slate-600 mb-4 leading-relaxed">
+                                {task.description}
+                              </p>
+                              
+                              <div className="flex items-center space-x-4 text-xs text-slate-500">
+                                <div className="flex items-center space-x-1">
+                                  <Calendar className="h-3.5 w-3.5" />
+                                  <span>Created {new Date(task.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                                </div>
+                                {task.updatedAt !== task.createdAt && (
+                                  <div className="flex items-center space-x-1">
+                                    <Edit3 className="h-3.5 w-3.5" />
+                                    <span>Updated {new Date(task.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            
+                            <div className="flex space-x-2 ml-6 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                              <button
+                                onClick={() => editTask(task)}
+                                className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200"
+                                title="Edit task"
+                              >
+                                <Edit3 className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => deleteTask(task._id)}
+                                className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
+                                title="Delete task"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
